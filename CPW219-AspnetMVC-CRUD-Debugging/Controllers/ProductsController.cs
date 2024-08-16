@@ -29,6 +29,7 @@ namespace CPW219_AspnetMVC_CRUD_Debugging.Controllers
             if (ModelState.IsValid)
             {
                 await _context.AddAsync(product);
+                await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
             return View(product);
@@ -45,13 +46,31 @@ namespace CPW219_AspnetMVC_CRUD_Debugging.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Edit(Product product)
+        public async Task<IActionResult> Edit(int id, Product product)
         {
+            if (id != product.ProductId)
+            {
+                return BadRequest();
+            }
+
             if (ModelState.IsValid)
             {
-                _context.Update(product);
-                await _context.SaveChangesAsync();
-
+                try
+                {
+                    _context.Update(product);
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    if (!ProductExists(product.ProductId))
+                    {
+                        return NotFound();
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
                 return RedirectToAction(nameof(Index));
             }
             return View(product);
@@ -75,6 +94,7 @@ namespace CPW219_AspnetMVC_CRUD_Debugging.Controllers
         {
             var product = await _context.Product.FindAsync(id);
             _context.Product.Remove(product);
+            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 
